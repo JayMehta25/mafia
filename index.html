@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mafia Web App (Single Player Test - Simulated Roles)</title>
+  <title>Mafia Web App (Multiplayer)</title>
   <style>
     body {
       display: flex;
@@ -35,7 +35,7 @@
       font-weight: bold;
     }
 
-    input[type="text"] {
+    input[type="text"], input[type="number"] {
       padding: 8px;
       border: 1px solid #ccc;
       border-radius: 4px;
@@ -70,6 +70,7 @@
       border: 1px solid #ccc;
       background-color: #f9f9f9; /* Light gray background */
       border-radius: 4px;
+      margin-top: 20px;
     }
 
     #mafia-chat {
@@ -141,10 +142,13 @@
 </head>
 <body>
   <div id="container">
-    <h1>Mafia Web App</h1>
+    <h1>Mafia Web App (Multiplayer)</h1>
     <form id="player-form">
-      <label for="player-name">Enter your name:</label><br>
-      <input type="text" id="player-name" name="player-name" required><br>
+      <label for="player-name">Enter your name:</label>
+      <input type="text" id="player-name" name="player-name" required>
+      <br>
+      <label for="session-code">Enter 5-digit session code:</label>
+      <input type="number" id="session-code" name="session-code" required>
       <button type="submit">Join Game</button>
     </form>
     <button id="start-game" disabled>Start Game</button>
@@ -160,131 +164,144 @@
     <button id="mafia-button">Go to Mafia Chat Room</button>
   </div>
 
-  <script>
+  <!-- Firebase JavaScript SDK -->
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+  
+    // Your web app's Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    const firebaseConfig = {
+      apiKey: "AIzaSyBJhvFhySRvXsnc10jT3NckusV8XML6PYY",
+      authDomain: "mafia-9f82f.firebaseapp.com",
+      projectId: "mafia-9f82f",
+      storageBucket: "mafia-9f82f.appspot.com",
+      messagingSenderId: "408585618253",
+      appId: "1:408585618253:web:a2e127c6825bde3a6e2d04",
+      measurementId: "G-JKVSLY8H9R"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // Reference to Firebase database
+    const db = firebase.database();
+
+    // Elements from the DOM
     const playerForm = document.getElementById('player-form');
     const startGameButton = document.getElementById('start-game');
+    const playerListContainer = document.getElementById('player-list');
     const mafiaChat = document.getElementById('mafia-chat');
     const mafiaChatForm = document.getElementById('mafia-chat-form');
     const mafiaMessagesList = document.getElementById('mafia-messages');
     const mafiaButton = document.getElementById('mafia-button');
+
+    // Variables to hold player and role data
     let playerList = [];
     let roleList = [];
     let currentPlayer;
+    let sessionCode;
 
-    // Clear localStorage on page load to start fresh
-    localStorage.clear();
+    // Function to initialize Firebase listeners and setup
+    function initializeFirebase() {
+      // Firebase listeners
+      db.ref('sessions').child(sessionCode).child('players').on('value', snapshot => {
+        playerList = snapshot.val() || [];
+        updatePlayerListUI();
+        checkStartGameButton();
+      });
 
-    playerForm.addEventListener('submit', function(event) {
-      event.preventDefault();
-      const playerName = document.getElementById('player-name').value.trim();
-      
-      if (playerName === '') return; // Prevent empty submissions
-      
-      // Check for duplicate names
-      if (playerList.includes(playerName)) {
-        alert('This name is already taken. Please choose a different name.');
-        return;
-      }
+      db.ref('sessions').child(sessionCode).child('roles').on('value', snapshot => {
+        roleList = snapshot.val() || [];
+      });
 
-      playerList.push(playerName);
-
-      // Create and add list item for player name (without actual role)
-      const newListItem = document.createElement('li');
-      newListItem.textContent = playerName;
-      newListItem.textContent += ' (Your assigned role will be revealed during gameplay)';
-      document.getElementById('player-list').appendChild(newListItem);
-
-      document.getElementById('player-name').value = ''; // Clear input field
-      if (playerList.length >= 1) { // Allow single player testing
-        startGameButton.disabled = false;
-      }
-
-      localStorage.setItem('playerList', JSON.stringify(playerList));
-    });
-
-    startGameButton.addEventListener('click', function() {
-      // Randomly assign roles (no role display)
-      const numPlayers = playerList.length;
-      const numMafia = 2;
-      const numDetective = 1;
-      const numDoctor = 1;
-      const numVillagers = numPlayers - numMafia - numDetective - numDoctor - 1; // 1 reserved for God
-
-      // Assign roles
-      let roles = [];
-      roles = roles.concat(Array(numMafia).fill('Mafia'));
-      roles = roles.concat(Array(numDetective).fill('Detective'));
-      roles = roles.concat(Array(numDoctor).fill('Doctor'));
-      roles = roles.concat(Array(numVillagers).fill('Villager'));
-      roles.push('God'); // Add God role
-
-      // Shuffle player list and roles
-      shuffle(playerList);
-      shuffle(roles);
-
-      // Clear previous roleList
-      roleList = [];
-
-      for (let i = 0; i < numPlayers; i++) {
-        const player = playerList[i];
-        const role = roles[i];
-        roleList.push({ player, role });
-
-        // Display player and role
-        const roleMessage = document.createElement('p');
-        roleMessage.textContent = `${player} (Assigned Role: ${role})`;
-        document.getElementById('player-list').appendChild(roleMessage);
-
-        if (role === 'Mafia' || role === 'God') {
-          mafiaChat.style.display = 'block'; // Show Mafia chat for Mafia and God
-          if (role === 'Mafia') {
-            mafiaButton.style.display = 'block'; // Show Mafia button for Mafia only
-          }
-        }
-      }
-
-      // Store roles and current player in localStorage
-      localStorage.setItem('roleList', JSON.stringify(roleList));
-      localStorage.setItem('currentPlayer', JSON.stringify(playerList[playerList.length - 1]));
-
-      // Redirect non-Mafia players to home page
-      currentPlayer = playerList[playerList.length - 1];
-      if (currentPlayer && roleList.find(entry => entry.player === currentPlayer)?.role !== 'Mafia') {
-        alert('You are not a Mafia. Access to Mafia Chat Room denied.');
-        // Optionally, you can clear the displayed roles or take other actions here.
-      }
-    });
-
-    mafiaButton.addEventListener('click', function(event) {
-      event.preventDefault(); // Prevent default form submission behavior
-      currentPlayer = playerList[playerList.length - 1];
-      if (currentPlayer && roleList.find(entry => entry.player === currentPlayer)?.role === 'Mafia') {
-        // Open Mafia chat in a new window/tab
-        window.open('mafia-chat.html', '_blank');
-      } else {
-        alert('You are not a Mafia. Access to Mafia Chat Room denied.');
-        // Optionally, you can clear the displayed roles or take other actions here.
-      }
-    });
-
-    mafiaChatForm.addEventListener('submit', function(event) {
-      event.preventDefault();
-      const message = mafiaChatForm.querySelector('#mafia-chat-input').value;
-      if (message.trim()) {
-        const newMessage = document.createElement('li');
-        newMessage.textContent = message;
-        mafiaMessagesList.appendChild(newMessage);
-        mafiaChatForm.querySelector('#mafia-chat-input').value = ''; // Clear input field
-      }
-    });
-
-    // Shuffle function
-    function shuffle(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
+      db.ref('sessions').child(sessionCode).child('chat').on('child_added', snapshot => {
+        const { player, message } = snapshot.val();
+        displayMessage(player, message);
+      });
     }
+
+    // Function to update player list in the UI
+    function updatePlayerListUI() {
+      playerListContainer.innerHTML = '';
+      playerList.forEach(player => {
+        const listItem = document.createElement('li');
+        listItem.textContent = player.name;
+        playerListContainer.appendChild(listItem);
+      });
+    }
+
+    // Function to check if the game can be started
+    function checkStartGameButton() {
+      startGameButton.disabled = playerList.length < 3;
+    }
+
+    // Event listener for player form submission
+    playerForm.addEventListener('submit', event => {
+      event.preventDefault();
+      const playerName = playerForm['player-name'].value.trim();
+      sessionCode = playerForm['session-code'].value.trim();
+      
+      if (playerName === '' || sessionCode === '') return;
+
+      db.ref('sessions').child(sessionCode).child('players').once('value', snapshot => {
+        const players = snapshot.val() || {};
+        
+        if (Object.keys(players).length >= 10) {
+          alert('Session is full. Please join another session.');
+          return;
+        }
+
+        if (players[playerName]) {
+          alert('This name is already taken in this session. Please choose a different name.');
+          return;
+        }
+
+        // Add player to session
+        players[playerName] = { name: playerName };
+        db.ref('sessions').child(sessionCode).child('players').set(players);
+        
+        playerForm.reset();
+      });
+    });
+
+    // Event listener for starting the game
+    startGameButton.addEventListener('click', () => {
+      // Implement game start logic here
+      alert('Starting game...');
+      // Example: Role assignment logic can be added here
+    });
+
+    // Event listener for sending messages in Mafia chat
+    mafiaChatForm.addEventListener('submit', event => {
+      event.preventDefault();
+      const message = mafiaChatForm['mafia-chat-input'].value.trim();
+      
+      if (message === '') return;
+
+      db.ref('sessions').child(sessionCode).child('chat').push({
+        player: currentPlayer,
+        message: message,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+      });
+
+      mafiaChatForm.reset();
+    });
+
+    // Function to display messages in Mafia chat
+    function displayMessage(player, message) {
+      const messageItem = document.createElement('li');
+      messageItem.textContent = `${player}: ${message}`;
+      mafiaMessagesList.appendChild(messageItem);
+    }
+
+    // Initialize Firebase listeners on page load
+    window.onload = () => {
+      initializeFirebase();
+    };
   </script>
 </body>
 </html>
