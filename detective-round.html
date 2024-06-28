@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detective Round</title>
+  <style>
+    #detective-chat {
+      border: 1px solid black;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    #god-chat {
+      display: none; /* Initially hidden for all except God */
+      border: 1px solid black;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    #guess-mafia {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Detective Round</h1>
+  <div id="detective-chat">
+    <h2>Detective Chat</h2>
+    <ul id="detective-messages"></ul>
+    <form id="detective-chat-form">
+      <input type="text" id="detective-chat-input" placeholder="Enter message">
+      <button type="submit">Send</button>
+    </form>
+  </div>
+  <div id="god-chat">
+    <h2>God Chat (Moderator)</h2>
+    <ul id="god-messages"></ul>
+    <form id="god-chat-form">
+      <input type="text" id="god-chat-input" placeholder="Enter message">
+      <button type="submit">Send</button>
+    </form>
+  </div>
+  <div id="guess-mafia">
+    <h2>Guess the Mafia</h2>
+    <label for="mafia-guess">Select player you suspect as Mafia:</label>
+    <select id="mafia-guess">
+      <!-- Options will be dynamically populated by JavaScript -->
+    </select>
+    <button type="button" id="submit-guess">Submit Guess</button>
+  </div>
+
+  <script>
+    const detectiveChatForm = document.getElementById('detective-chat-form');
+    const detectiveMessagesList = document.getElementById('detective-messages');
+    const godChat = document.getElementById('god-chat');
+    const godChatForm = document.getElementById('god-chat-form');
+    const godMessagesList = document.getElementById('god-messages');
+    const mafiaGuessSelect = document.getElementById('mafia-guess');
+    const submitGuessButton = document.getElementById('submit-guess');
+    let playerList = [];
+
+    // Retrieve player list from localStorage
+    const storedPlayerList = JSON.parse(localStorage.getItem('playerList'));
+    if (storedPlayerList) {
+      playerList = storedPlayerList;
+    }
+
+    // Populate select options with player names
+    playerList.forEach(player => {
+      const option = document.createElement('option');
+      option.value = player;
+      option.textContent = player;
+      mafiaGuessSelect.appendChild(option);
+    });
+
+    detectiveChatForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+      const message = detectiveChatForm.querySelector('#detective-chat-input').value;
+      if (message.trim()) {
+        const newMessage = document.createElement('li');
+        newMessage.textContent = message;
+        detectiveMessagesList.appendChild(newMessage);
+        detectiveChatForm.querySelector('#detective-chat-input').value = ''; // Clear input field
+      }
+    });
+
+    godChatForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+      const message = godChatForm.querySelector('#god-chat-input').value;
+      if (message.trim()) {
+        const newMessage = document.createElement('li');
+        newMessage.textContent = message;
+        godMessagesList.appendChild(newMessage);
+        godChatForm.querySelector('#god-chat-input').value = ''; // Clear input field
+      }
+    });
+
+    submitGuessButton.addEventListener('click', function() {
+      const mafiaGuess = mafiaGuessSelect.value.trim();
+      if (mafiaGuess !== '') {
+        const newMessage = document.createElement('li');
+        newMessage.textContent = `Detective guesses ${mafiaGuess} is Mafia!`;
+        detectiveMessagesList.appendChild(newMessage);
+        mafiaGuessSelect.value = ''; // Reset select field
+      } else {
+        alert('Please select a player to guess.');
+      }
+    });
+  </script>
+</body>
+</html>

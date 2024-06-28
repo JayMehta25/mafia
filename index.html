@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mafia Web App (Single Player Test - Simulated Roles)</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0; /* Light gray background */
+    }
+
+    #container {
+      text-align: center;
+      background-color: #fff; /* White container background */
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Soft box shadow */
+    }
+
+    h1 {
+      color: #333; /* Dark gray heading */
+    }
+
+    #player-form {
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-weight: bold;
+    }
+
+    input[type="text"] {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 200px;
+      margin-top: 5px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50; /* Green button */
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:disabled {
+      background-color: #ccc; /* Grayed out button */
+      cursor: not-allowed;
+    }
+
+    button:hover {
+      background-color: #45a049; /* Darker green on hover */
+    }
+
+    #player-list {
+      text-align: left;
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 10px;
+      border: 1px solid #ccc;
+      background-color: #f9f9f9; /* Light gray background */
+      border-radius: 4px;
+    }
+
+    #mafia-chat {
+      display: none; /* Initially hidden for non-Mafia players */
+      border: 1px solid #333;
+      padding: 10px;
+      margin-top: 20px;
+      background-color: #fff; /* White container */
+      border-radius: 8px;
+    }
+
+    #mafia-button {
+      display: none; /* Initially hidden for non-Mafia players */
+      margin-top: 10px;
+      padding: 10px 20px;
+      background-color: #f44336; /* Red button */
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #mafia-button:hover {
+      background-color: #d32f2f; /* Darker red on hover */
+    }
+
+    /* Style for chat messages */
+    #mafia-messages {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    #mafia-messages li {
+      margin-bottom: 5px;
+      padding: 5px;
+      background-color: #f0f0f0; /* Light gray message background */
+      border-radius: 4px;
+    }
+
+    /* Form input and button inside Mafia Chat */
+    #mafia-chat-form {
+      display: flex;
+      align-items: center;
+    }
+
+    #mafia-chat-input {
+      flex: 1;
+      padding: 8px;
+      margin-right: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    #mafia-chat-form button {
+      padding: 8px 15px;
+      background-color: #4CAF50; /* Green button */
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #mafia-chat-form button:hover {
+      background-color: #45a049; /* Darker green on hover */
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h1>Mafia Web App</h1>
+    <form id="player-form">
+      <label for="player-name">Enter your name:</label><br>
+      <input type="text" id="player-name" name="player-name" required><br>
+      <button type="submit">Join Game</button>
+    </form>
+    <button id="start-game" disabled>Start Game</button>
+    <div id="player-list"></div>
+    <div id="mafia-chat">
+      <h2>Mafia Chat</h2>
+      <ul id="mafia-messages"></ul>
+      <form id="mafia-chat-form">
+        <input type="text" id="mafia-chat-input" placeholder="Enter message">
+        <button type="submit">Send</button>
+      </form>
+    </div>
+    <button id="mafia-button">Go to Mafia Chat Room</button>
+  </div>
+
+  <script>
+    const playerForm = document.getElementById('player-form');
+    const startGameButton = document.getElementById('start-game');
+    const mafiaChat = document.getElementById('mafia-chat');
+    const mafiaChatForm = document.getElementById('mafia-chat-form');
+    const mafiaMessagesList = document.getElementById('mafia-messages');
+    const mafiaButton = document.getElementById('mafia-button');
+    let playerList = [];
+    let roleList = [];
+    let currentPlayer;
+
+    // Clear localStorage on page load to start fresh
+    localStorage.clear();
+
+    playerForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+      const playerName = document.getElementById('player-name').value.trim();
+      
+      if (playerName === '') return; // Prevent empty submissions
+      
+      // Check for duplicate names
+      if (playerList.includes(playerName)) {
+        alert('This name is already taken. Please choose a different name.');
+        return;
+      }
+
+      playerList.push(playerName);
+
+      // Create and add list item for player name (without actual role)
+      const newListItem = document.createElement('li');
+      newListItem.textContent = playerName;
+      newListItem.textContent += ' (Your assigned role will be revealed during gameplay)';
+      document.getElementById('player-list').appendChild(newListItem);
+
+      document.getElementById('player-name').value = ''; // Clear input field
+      if (playerList.length >= 1) { // Allow single player testing
+        startGameButton.disabled = false;
+      }
+
+      localStorage.setItem('playerList', JSON.stringify(playerList));
+    });
+
+    startGameButton.addEventListener('click', function() {
+      // Randomly assign roles (no role display)
+      const numPlayers = playerList.length;
+      const numMafia = 2;
+      const numDetective = 1;
+      const numDoctor = 1;
+      const numVillagers = numPlayers - numMafia - numDetective - numDoctor - 1; // 1 reserved for God
+
+      // Assign roles
+      let roles = [];
+      roles = roles.concat(Array(numMafia).fill('Mafia'));
+      roles = roles.concat(Array(numDetective).fill('Detective'));
+      roles = roles.concat(Array(numDoctor).fill('Doctor'));
+      roles = roles.concat(Array(numVillagers).fill('Villager'));
+      roles.push('God'); // Add God role
+
+      // Shuffle player list and roles
+      shuffle(playerList);
+      shuffle(roles);
+
+      // Clear previous roleList
+      roleList = [];
+
+      for (let i = 0; i < numPlayers; i++) {
+        const player = playerList[i];
+        const role = roles[i];
+        roleList.push({ player, role });
+
+        // Display player and role
+        const roleMessage = document.createElement('p');
+        roleMessage.textContent = `${player} (Assigned Role: ${role})`;
+        document.getElementById('player-list').appendChild(roleMessage);
+
+        if (role === 'Mafia' || role === 'God') {
+          mafiaChat.style.display = 'block'; // Show Mafia chat for Mafia and God
+          if (role === 'Mafia') {
+            mafiaButton.style.display = 'block'; // Show Mafia button for Mafia only
+          }
+        }
+      }
+
+      // Store roles and current player in localStorage
+      localStorage.setItem('roleList', JSON.stringify(roleList));
+      localStorage.setItem('currentPlayer', JSON.stringify(playerList[playerList.length - 1]));
+
+      // Redirect non-Mafia players to home page
+      currentPlayer = playerList[playerList.length - 1];
+      if (currentPlayer && roleList.find(entry => entry.player === currentPlayer)?.role !== 'Mafia') {
+        alert('You are not a Mafia. Access to Mafia Chat Room denied.');
+        // Optionally, you can clear the displayed roles or take other actions here.
+      }
+    });
+
+    mafiaButton.addEventListener('click', function(event) {
+      event.preventDefault(); // Prevent default form submission behavior
+      currentPlayer = playerList[playerList.length - 1];
+      if (currentPlayer && roleList.find(entry => entry.player === currentPlayer)?.role === 'Mafia') {
+        // Open Mafia chat in a new window/tab
+        window.open('mafia-chat.html', '_blank');
+      } else {
+        alert('You are not a Mafia. Access to Mafia Chat Room denied.');
+        // Optionally, you can clear the displayed roles or take other actions here.
+      }
+    });
+
+    mafiaChatForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+      const message = mafiaChatForm.querySelector('#mafia-chat-input').value;
+      if (message.trim()) {
+        const newMessage = document.createElement('li');
+        newMessage.textContent = message;
+        mafiaMessagesList.appendChild(newMessage);
+        mafiaChatForm.querySelector('#mafia-chat-input').value = ''; // Clear input field
+      }
+    });
+
+    // Shuffle function
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+  </script>
+</body>
+</html>

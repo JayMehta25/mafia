@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mafia Chat Room</title>
+  <style>
+    #mafia-chat {
+      border: 1px solid black;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    #back-button {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Mafia Chat Room</h1>
+  <div id="mafia-chat">
+    <h2>Mafia Chat</h2>
+    <ul id="mafia-messages"></ul>
+    <form id="mafia-chat-form">
+      <input type="text" id="mafia-chat-input" placeholder="Enter message">
+      <button type="submit">Send</button>
+    </form>
+  </div>
+  <div id="kill-options">
+    <h2>Choose a Player to Kill</h2>
+    <ul id="player-options"></ul>
+  </div>
+  <button id="back-button">Back to Home</button>
+
+  <script>
+    const mafiaChatForm = document.getElementById('mafia-chat-form');
+    const mafiaMessagesList = document.getElementById('mafia-messages');
+    const playerOptions = document.getElementById('player-options');
+    const backButton = document.getElementById('back-button');
+    let roleList = JSON.parse(localStorage.getItem('roleList')) || [];
+    let currentPlayer = JSON.parse(localStorage.getItem('currentPlayer'));
+
+    // Check if current player is Mafia or God
+    const currentPlayerRole = roleList.find(player => player.player === currentPlayer).role;
+    if (currentPlayerRole !== 'Mafia' && currentPlayerRole !== 'God') {
+      alert('You do not have access to this page.');
+      window.location.href = 'index.html';
+    } else {
+      // Display kill options for Mafia players
+      roleList.forEach(({ player, role }) => {
+        if (role !== 'Mafia') {
+          const option = document.createElement('li');
+          option.textContent = player;
+          const killButton = document.createElement('button');
+          killButton.textContent = 'Kill';
+          killButton.addEventListener('click', () => {
+            alert(`You have chosen to kill ${player}`);
+          });
+          option.appendChild(killButton);
+          playerOptions.appendChild(option);
+        }
+      });
+
+      mafiaChatForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const message = mafiaChatForm.querySelector('#mafia-chat-input').value;
+        if (message.trim()) {
+          const newMessage = document.createElement('li');
+          newMessage.textContent = message;
+          mafiaMessagesList.appendChild(newMessage);
+          mafiaChatForm.querySelector('#mafia-chat-input').value = ''; // Clear input field
+        }
+      });
+
+      backButton.addEventListener('click', function() {
+        window.location.href = 'index.html';
+      });
+    }
+  </script>
+</body>
+</html>
